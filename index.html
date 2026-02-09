@@ -2,27 +2,143 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Reset de senha</title>
+  <title>Redefinir senha</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 380px;
+      padding: 32px;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,.25);
+    }
+
+    h1 {
+      margin: 0 0 20px;
+      font-size: 20px;
+      text-align: center;
+      color: #0f172a;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #334155;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      margin-bottom: 16px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      font-size: 14px;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #2563eb;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #2563eb;
+      color: #fff;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1d4ed8;
+    }
+
+    .msg {
+      margin-top: 14px;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    .error { color: #dc2626; }
+    .success { color: #16a34a; }
+  </style>
 </head>
+
 <body>
-  <h3>Nova senha</h3>
-  <input id="pwd" type="password" placeholder="Digite a nova senha" />
-  <button onclick="reset()">Salvar</button>
+  <div class="card">
+    <h1>Redefinir senha</h1>
+
+    <label>Nova senha</label>
+    <input id="password" type="password" placeholder="Digite a nova senha" />
+
+    <label>Confirmar nova senha</label>
+    <input id="confirm" type="password" placeholder="Confirme a senha" />
+
+    <button onclick="resetPassword()">Salvar nova senha</button>
+
+    <div id="msg" class="msg"></div>
+  </div>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
   <script>
     const supabase = supabase.createClient(
       'https://lxeypkqyrrcmplpnmlim.supabase.co',
-      'SUA_ANON_KEY_AQUI'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4ZXlwa3F5cnJjbXBscG5tbGltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODI5OTMsImV4cCI6MjA4NTk1ODk5M30.pDP7EVD1fFpJqo4KeUsYY5kRhikftozrPukEW3vQOwA'
     )
 
-    async function reset() {
-      const password = document.getElementById('pwd').value
+    async function resetPassword() {
+      const password = document.getElementById('password').value
+      const confirm  = document.getElementById('confirm').value
+      const msg = document.getElementById('msg')
+
+      msg.textContent = ''
+      msg.className = 'msg'
+
+      if (!password || !confirm) {
+        msg.textContent = 'Preencha todos os campos.'
+        msg.classList.add('error')
+        return
+      }
+
+      if (password !== confirm) {
+        msg.textContent = 'As senhas não coincidem.'
+        msg.classList.add('error')
+        return
+      }
+
+      if (password.length < 6) {
+        msg.textContent = 'A senha deve ter pelo menos 6 caracteres.'
+        msg.classList.add('error')
+        return
+      }
+
       const { error } = await supabase.auth.updateUser({ password })
-      if (error) alert(error.message)
-      else alert('Senha alterada com sucesso')
+
+      if (error) {
+        msg.textContent = error.message
+        msg.classList.add('error')
+      } else {
+        msg.textContent = 'Senha alterada com sucesso. Você já pode fazer login.'
+        msg.classList.add('success')
+      }
     }
   </script>
 </body>
 </html>
-    
