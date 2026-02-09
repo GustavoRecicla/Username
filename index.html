@@ -7,7 +7,6 @@
 
   <style>
     * { box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; }
-
     body {
       min-height: 100vh;
       margin: 0;
@@ -16,47 +15,55 @@
       align-items: center;
       justify-content: center;
     }
-
     .card {
-      background: #ffffff;
+      background: #fff;
       width: 100%;
-      max-width: 380px;
+      max-width: 420px;
       padding: 32px;
-      border-radius: 12px;
+      border-radius: 14px;
       box-shadow: 0 20px 40px rgba(0,0,0,.25);
     }
-
     h1 {
       margin: 0 0 20px;
       font-size: 20px;
       text-align: center;
       color: #0f172a;
     }
-
-    label {
-      display: block;
-      font-size: 13px;
-      margin-bottom: 6px;
-      color: #334155;
-    }
-
+    label { font-size: 13px; color: #334155; }
+    .field { margin-top: 14px; }
     input {
       width: 100%;
       padding: 10px 12px;
-      margin-bottom: 16px;
       border-radius: 8px;
       border: 1px solid #cbd5e1;
       font-size: 14px;
+      margin-top: 6px;
     }
-
-    input:focus {
-      outline: none;
-      border-color: #2563eb;
+    .toggle {
+      font-size: 12px;
+      color: #2563eb;
+      cursor: pointer;
+      margin-top: 6px;
+      display: inline-block;
     }
-
+    .strength {
+      height: 6px;
+      border-radius: 6px;
+      background: #e5e7eb;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    .strength span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: #dc2626;
+      transition: width .3s, background .3s;
+    }
     button {
       width: 100%;
       padding: 12px;
+      margin-top: 24px;
       border: none;
       border-radius: 8px;
       background: #2563eb;
@@ -65,19 +72,15 @@
       font-weight: bold;
       cursor: pointer;
     }
-
-    button:hover {
-      background: #1d4ed8;
-    }
-
+    button:disabled { background: #94a3b8; }
     .msg {
-      margin-top: 14px;
+      margin-top: 16px;
       font-size: 13px;
       text-align: center;
     }
-
     .error { color: #dc2626; }
     .success { color: #16a34a; }
+    .info { color: #334155; }
   </style>
 </head>
 
@@ -85,15 +88,22 @@
   <div class="card">
     <h1>Redefinir senha</h1>
 
-    <label>Nova senha</label>
-    <input id="password" type="password" placeholder="Digite a nova senha" />
+    <div class="field">
+      <label>Nova senha</label>
+      <input id="password" type="password" />
+      <span class="toggle" onclick="toggle('password')">Mostrar senha</span>
+      <div class="strength"><span id="bar"></span></div>
+    </div>
 
-    <label>Confirmar nova senha</label>
-    <input id="confirm" type="password" placeholder="Confirme a senha" />
+    <div class="field">
+      <label>Confirmar senha</label>
+      <input id="confirm" type="password" />
+      <span class="toggle" onclick="toggle('confirm')">Mostrar senha</span>
+    </div>
 
-    <button onclick="resetPassword()">Salvar nova senha</button>
+    <button id="btn" onclick="resetPassword()" disabled>Salvar nova senha</button>
 
-    <div id="msg" class="msg"></div>
+    <div id="msg" class="msg info"></div>
   </div>
 
   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
@@ -103,41 +113,71 @@
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx4ZXlwa3F5cnJjbXBscG5tbGltIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAzODI5OTMsImV4cCI6MjA4NTk1ODk5M30.pDP7EVD1fFpJqo4KeUsYY5kRhikftozrPukEW3vQOwA'
     )
 
+    const pwd = document.getElementById('password')
+    const confirmPwd = document.getElementById('confirm')
+    const bar = document.getElementById('bar')
+    const msg = document.getElementById('msg')
+    const btn = document.getElementById('btn')
+
+    function toggle(id) {
+      const el = document.getElementById(id)
+      el.type = el.type === 'password' ? 'text' : 'password'
+    }
+
+    function validPassword(p) {
+      return p.length >= 8 &&
+        /[A-Z]/.test(p) &&
+        /[a-z]/.test(p) &&
+        /[0-9]/.test(p) &&
+        /[^A-Za-z0-9]/.test(p)
+    }
+
+    pwd.oninput = () => {
+      const score = [
+        pwd.value.length >= 8,
+        /[A-Z]/.test(pwd.value),
+        /[0-9]/.test(pwd.value),
+        /[^A-Za-z0-9]/.test(pwd.value)
+      ].filter(Boolean).length
+
+      bar.style.width = (score * 25) + '%'
+      bar.style.background = score < 2 ? '#dc2626' : score < 3 ? '#f59e0b' : '#16a34a'
+      btn.disabled = !(validPassword(pwd.value) && pwd.value === confirmPwd.value)
+    }
+
+    confirmPwd.oninput = () => {
+      btn.disabled = !(validPassword(pwd.value) && pwd.value === confirmPwd.value)
+    }
+
     async function resetPassword() {
-      const password = document.getElementById('password').value
-      const confirm  = document.getElementById('confirm').value
-      const msg = document.getElementById('msg')
+      msg.textContent = 'Processando...'
+      msg.className = 'msg info'
 
-      msg.textContent = ''
-      msg.className = 'msg'
-
-      if (!password || !confirm) {
-        msg.textContent = 'Preencha todos os campos.'
-        msg.classList.add('error')
-        return
-      }
-
-      if (password !== confirm) {
-        msg.textContent = 'As senhas não coincidem.'
-        msg.classList.add('error')
-        return
-      }
-
-      if (password.length < 6) {
-        msg.textContent = 'A senha deve ter pelo menos 6 caracteres.'
-        msg.classList.add('error')
-        return
-      }
-
-      const { error } = await supabase.auth.updateUser({ password })
+      const { error } = await supabase.auth.updateUser({ password: pwd.value })
 
       if (error) {
-        msg.textContent = error.message
-        msg.classList.add('error')
-      } else {
-        msg.textContent = 'Senha alterada com sucesso. Você já pode fazer login.'
-        msg.classList.add('success')
+        msg.textContent = 'Erro: a senha não foi alterada.'
+        msg.className = 'msg error'
+        return
       }
+
+      const { data } = await supabase.auth.getUser()
+      if (!data.user) {
+        msg.textContent = 'Erro: não foi possível confirmar a alteração.'
+        msg.className = 'msg error'
+        return
+      }
+
+      msg.textContent = 'Senha alterada com sucesso.'
+      msg.className = 'msg success'
+
+      await supabase.from('auth_audit').insert({
+        user_id: data.user.id,
+        email: data.user.email,
+        event: 'PASSWORD_RESET'
+      })
+
+      await supabase.auth.signOut()
     }
   </script>
 </body>
